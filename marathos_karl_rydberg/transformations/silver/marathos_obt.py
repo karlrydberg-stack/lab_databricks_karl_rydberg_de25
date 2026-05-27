@@ -1,5 +1,5 @@
 from pyspark import pipelines as dp 
-from pyspark.sql.functions import coalesce, lit, when, col, to_date, regexp_extract, concat_ws
+from pyspark.sql.functions import coalesce, lit, when, col, to_date, regexp_extract, concat_ws, upper
 from utils.utils import rename_columns_to_snake_case
 
 @dp.table(name="marathos.silver.cleaned_marathos_obt",
@@ -21,5 +21,12 @@ def cleaned_marathos():
                     regexp_extract(col("event_dates"), r"(\d{4})$", 1)
                 ))
           .withColumn("event_start_date", to_date(col("temp_start"), "dd.MM.yyyy"))
-          .drop("temp_start", "event_dates")
+          .drop("temp_start", "event_dates").withColumn("athlete_country", when(upper(col("athlete_country")) == "XXX", None)
+          .when(upper(col("athlete_country")) == "SVE", "SWE").otherwise(upper(col("athlete_country")))).withColumn("athlete_year_of_birth",
+    when(
+        (col("year_of_event") - col("athlete_year_of_birth") < 15) |
+        (col("year_of_event") - col("athlete_year_of_birth") > 100), None)
+    .otherwise(col("athlete_year_of_birth").cast("integer"))).withColumn("athlete_age_category",
+    when(col("athlete_age_category") == "F35", "W35")
+    .otherwise(col("athlete_age_category")))
     )
