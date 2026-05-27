@@ -22,11 +22,17 @@ def cleaned_marathos():
                 ))
           .withColumn("event_start_date", to_date(col("temp_start"), "dd.MM.yyyy"))
           .drop("temp_start", "event_dates").withColumn("athlete_country", when(upper(col("athlete_country")) == "XXX", None)
-          .when(upper(col("athlete_country")) == "SVE", "SWE").otherwise(upper(col("athlete_country")))).withColumn("athlete_year_of_birth",
-    when(
-        (col("year_of_event") - col("athlete_year_of_birth") < 15) |
-        (col("year_of_event") - col("athlete_year_of_birth") > 100), None)
-    .otherwise(col("athlete_year_of_birth").cast("integer"))).withColumn("athlete_age_category",
+          .when(upper(col("athlete_country")) == "SVE", "SWE").otherwise(upper(col("athlete_country")))).withColumn("athlete_year_of_birth", when((col("year_of_event") - col("athlete_year_of_birth") < 15) |
+          (col("year_of_event") - col("athlete_year_of_birth") > 100), None)
+          .otherwise(col("athlete_year_of_birth").cast("integer"))).withColumn("athlete_age_category",
     when(col("athlete_age_category") == "F35", "W35")
-    .otherwise(col("athlete_age_category")))
+    .otherwise(col("athlete_age_category"))).withColumn("athlete_average_speed",
+                when(col("athlete_average_speed").isNull(), None)
+                .when(col("athlete_average_speed").rlike(r"^\d{2}:\d{2}:\d{2}$"), None)
+                .otherwise(col("athlete_average_speed").cast("double")))
+          .withColumn("athlete_average_speed",
+                when(
+                    (col("athlete_average_speed") < 2.0) |
+                    (col("athlete_average_speed") > 30.0), None)
+                .otherwise(col("athlete_average_speed")))
     )
